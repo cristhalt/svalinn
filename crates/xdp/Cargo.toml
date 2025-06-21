@@ -1,0 +1,13 @@
+[package]
+name = "svalinn-xdp"
+version = { workspace = true }
+edition = { workspace = true }
+
+[[bin]]
+name = "svalinn-ebpf-xdp"
+path = "src/main.rs"
+
+[dependencies]
+svalinn-shared = { path = "../shared", default-features = false }
+
+aya-ebpf = { version = "0.1.1" }

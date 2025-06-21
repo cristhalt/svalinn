@@ -1,0 +1,13 @@
+[package]
+name = "svalinn-daemon"
+version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+svalinn-shared = { path = "../shared" }
+
+aya = { version = "0.13.1" }
+
+[build-dependencies]
+anyhow = { version = "1.0.98" }
+aya-build = { version = "0.1.2" }
