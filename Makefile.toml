@@ -3,10 +3,7 @@ default_to_workspace = false
 
 [tasks.build]
 command = "cargo"
-args = [
-    "build",
-    "--release",
-]
+args = ["build", "--release"]
 
 [tasks.vagrant-sync]
 command = "vagrant"
@@ -15,9 +12,4 @@ args = ["rsync"]
 [tasks.run]
 dependencies = ["build", "vagrant-sync"]
 command = "vagrant"
-args = [
-    "ssh",
-    "firewall",
-    "-c",
-    "/vagrant/target/release/svalinn-daemon"
-]
+args = ["ssh", "firewall", "-c", "sudo /vagrant/target/release/svalinn-daemon"]
