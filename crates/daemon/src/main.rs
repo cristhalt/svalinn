@@ -1,6 +1,7 @@
 use crate::{conf::GlobalConfig, logging::init_logging};
 
 mod conf;
+mod fw;
 mod logging;
 
 fn main() -> Result<(), anyhow::Error> {

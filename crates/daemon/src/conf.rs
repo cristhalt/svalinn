@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::logging::LoggingConfig;
+use crate::{fw::FirewallRules, logging::LoggingConfig};
 
 /// The path to the configuration file used by the daemon.
 const CONF_FILE_PATH: &str = "/etc/svalinn/config.toml";
@@ -11,6 +11,8 @@ pub struct GlobalConfig {
     /// The logging configuration.
     #[serde(default)]
     pub log: LoggingConfig,
+    #[serde(default)]
+    pub rules: FirewallRules,
 }
 
 impl GlobalConfig {
