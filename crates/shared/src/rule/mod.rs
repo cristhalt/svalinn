@@ -5,6 +5,9 @@ use crate::rule::condition::{RuleCondition, TrafficDirection};
 
 mod condition;
 
+/// The maximum number of rule that can be applied per NIC.
+pub const MAX_RULES: u32 = 1024;
+
 /// Represents a XDP-based rule for high-performance but basic packet filtering at the network driver level.
 #[derive(Debug, Clone, Copy)]
 #[cfg_attr(feature = "std", derive(Deserialize))]
