@@ -1,38 +1,79 @@
+use std::collections::HashMap;
+
 use aya::{
     Ebpf, include_bytes_aligned,
     programs::{Xdp, XdpFlags},
 };
-use svalinn_shared::rule::{MAX_RULES, XdpRule};
+use svalinn_shared::rule::{MAX_RULES, XdpFirewallRule, XdpRule};
 
-pub fn load_xdp(iface: String, rules: Vec<XdpRule>) -> Result<(), XdpError> {
-    if rules.len() > MAX_RULES as usize {
-        return Err(XdpError::TooMuchRules);
+#[derive(Debug)]
+pub struct XdpManager {
+    ebpfs: HashMap<String, Ebpf>,
+    rules: HashMap<String, Vec<XdpRule>>,
+}
+
+impl XdpManager {
+    pub fn new() -> Self {
+        Self {
+            ebpfs: HashMap::new(),
+            rules: HashMap::new(),
+        }
     }
 
-    let mut ebpf = Ebpf::load(include_bytes_aligned!(concat!(
-        env!("OUT_DIR"),
-        "/svalinn-ebpf-xdp"
-    )))?;
+    pub fn apply_rules(&mut self, rules: Vec<XdpFirewallRule>) -> Result<(), XdpError> {
+        self.rules = rules.into_iter().fold(HashMap::new(), |mut acc, fw_rule| {
+            acc.entry(fw_rule.iif)
+                .or_insert_with(Vec::new)
+                .push(fw_rule.rule);
+            acc
+        });
 
-    let mut rules_map: aya::maps::Array<_, XdpRule> = aya::maps::Array::try_from(
-        ebpf.map_mut("RULES")
-            .expect("Failed to get eBPF XDP map for RULES"),
-    )?;
+        self.load_xdp()?;
 
-    for (i, rule) in rules.into_iter().enumerate() {
-        rules_map.set(i as u32, rule, 0)?;
+        for (iif, rules) in &self.rules {
+            if rules.len() > MAX_RULES as usize {
+                return Err(XdpError::TooMuchRules);
+            }
+
+            if let Some(ebpf) = self.ebpfs.get_mut(iif) {
+                let mut rules_map: aya::maps::Array<_, XdpRule> = aya::maps::Array::try_from(
+                    ebpf.map_mut("RULES")
+                        .expect("Failed to get eBPF XDP map for RULES"),
+                )?;
+
+                for (i, rule) in rules.iter().enumerate() {
+                    rules_map.set(i as u32, rule.clone(), 0)?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
-    let xdp: &mut Xdp = ebpf
-        .program_mut("ebpf_main")
-        .unwrap() // Can't fail
-        .try_into()
-        .unwrap(); // Can't fail
+    fn load_xdp(&mut self) -> Result<(), XdpError> {
+        for (iif, _rules) in &self.rules {
+            if self.ebpfs.get(iif).is_none() {
+                let mut ebpf = Ebpf::load(include_bytes_aligned!(concat!(
+                    env!("OUT_DIR"),
+                    "/svalinn-ebpf-xdp"
+                )))?;
 
-    xdp.attach(&iface, XdpFlags::default())
-        .map_err(|err| XdpError::Attach(err, iface))?;
+                let xdp: &mut Xdp = ebpf
+                    .program_mut("ebpf_main")
+                    .unwrap() // Can't fail
+                    .try_into()
+                    .unwrap(); // Can't fail
 
-    Ok(())
+                xdp.load().map_err(|err| XdpError::Load(err, iif.clone()))?;
+                xdp.attach(iif, XdpFlags::default())
+                    .map_err(|err| XdpError::Load(err, iif.clone()))?;
+
+                self.ebpfs.insert(iif.clone(), ebpf);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -44,5 +85,5 @@ pub enum XdpError {
     #[error(transparent)]
     Ebpf(#[from] aya::EbpfError),
     #[error("Failed to attach to the interface {1}")]
-    Attach(aya::programs::ProgramError, String),
+    Load(aya::programs::ProgramError, String),
 }

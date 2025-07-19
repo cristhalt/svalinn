@@ -16,6 +16,15 @@ pub struct XdpRule {
     pub action: RuleAction,
 }
 
+/// Represents a XDP rule for the user-land side.
+#[cfg(feature = "std")]
+#[derive(Debug, Deserialize)]
+pub struct XdpFirewallRule {
+    pub iif: String,
+    #[serde(flatten)]
+    pub rule: XdpRule,
+}
+
 #[cfg(feature = "std")]
 unsafe impl aya::Pod for XdpRule {}
 
@@ -26,6 +35,22 @@ pub struct TcRule {
     pub condition: RuleCondition,
     pub direction: TrafficDirection,
     pub action: RuleAction,
+}
+
+/// Represents a TC rule for the user-land side.
+#[cfg(feature = "std")]
+#[derive(Debug, Deserialize)]
+pub struct TcFirewallRule {
+    /// The interfaces to apply the rule, if the rule direction is `TrafficDirection::Inbound`.
+    ///
+    /// If empty, the rule will be applied to all interfaces.
+    pub iif: Option<String>,
+    /// The interfaces to apply the rule, if the rule direction is `TrafficDirection::Outbound`.
+    ///
+    /// If empty, the rule will be applied to all interfaces.
+    pub oif: Option<String>,
+    #[serde(flatten)]
+    pub rule: TcRule,
 }
 
 #[cfg(feature = "std")]

@@ -1,12 +1,12 @@
 use serde::Deserialize;
-use svalinn_shared::rule::{TcRule, XdpRule};
+use svalinn_shared::rule::{TcFirewallRule, XdpFirewallRule};
 
 mod tc;
-mod xdp;
+pub mod xdp;
 
 /// Represents the complete firewall rules configuration.
 #[derive(Debug, Deserialize, Default)]
-pub struct FirewallRules {
-    pub xdp: Vec<XdpRule>,
-    pub tc: Vec<TcRule>,
+pub struct FirewallRuleConfig {
+    pub xdp: Vec<XdpFirewallRule>,
+    pub tc: Vec<TcFirewallRule>,
 }
